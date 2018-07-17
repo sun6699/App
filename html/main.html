@@ -1,58 +1,182 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, initial-scale=1.0, width=device-width" />
-    <meta name="format-detection" content="telephone=no, email=no, date=no, address=no">
-    <title>Hello APP</title>
-    <link rel="stylesheet" type="text/css" href="../css/api.css" />
-    <style>
-        label {
-            margin: 10px;
-            font-size: 24px;
-        }
+	<meta charset="utf-8">
+	<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<title></title>
+	<script type="text/javascript">
+		document.addEventListener('plusready', function() {
+			//console.log("所有plus api都应该在此事件发生后调用，否则会出现plus is undefined。"
 
-        ul {
-            margin-bottom: 10px;
-        }
+		});
+	</script>
+	<link rel="stylesheet" href="../css/aui.css" />
+	<script type="text/javascript" src="../script/api.js"></script>
+	<link rel="stylesheet" href="../css/base.css" />
+	<script type="text/javascript" src="../script/aui-tab.js"></script>
 
-        ul li {
-            margin: 5px 10px;
-            padding: 5px;
-            color: #000;
-            word-wrap: break-word;
-        }
-    </style>
 </head>
- 
+
 <body>
-    <label>Hello APP</label>
-    {{each $data as item i}}
-    <div>  {{item.Name}}-{{item.Pwd}}</div><br/>
-    {{/each}}
-    <div id='sys-info'></div>
+	<header class="aui-bar aui-bar-nav" id="aui-header">
+		<a class="aui-btn aui-pull-left" tapmode > </a>
+		<div class="aui-title">
+			登录
+		</div>
+	</header>
+	<div class="aui-card-list-content">
+		<div class="w100 ma" style="margin-top:2rem">
+			<img id="logo" src="../image/apm/apmsys.png" style="width: 60%;margin-left:20%;">
+		</div>
+	</div>
+	<div class="aui-content aui-margin-b-15 m20">
+		<ul class="aui-list aui-form-list">
+			<li class="aui-list-item">
+				<div class="aui-list-item-inner">
+					<div class="aui-list-item-label-icon">
+						<i class="aui-iconfont aui-icon-mobile"></i>
+					</div>
+					<div class="aui-list-item-input">
+						<input type="number" placeholder="请输入手机号" id="user" value="">
+						<!-- 13312534303 -->
+					</div>
+				</div>
+			</li>
+			<li class="aui-list-item">
+				<div class="aui-list-item-inner">
+					<div class="aui-list-item-label-icon">
+						<i class="aui-iconfont aui-icon-lock"></i>
+					</div>
+					<div class="aui-list-item-input">
+						<input type="password" placeholder="请输入密码" id="pwd" value="">
+					</div>
+				</div>
+			</li>
+		</ul>
+		<div class="w80 ma m20">
+			<div class="aui-btn aui-btn-block  aui-btn-sm aui-btn-info" onclick="doLogin()">
+				登录
+			</div>
+		</div>
+		<div class="w80 ma m20 tr">
+			<div class="aui-list-item-input f12" style="color: #f2a654;display: none;" id="hints">
+				联系管理员重置密码
+			</div>
+			<a href="javascript:doHints()" class="f12">忘记密码了？</a>
+		</div>
+	</div>
 </body>
-<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" src="../script/AppJsHelper.js"></script>
 <script type="text/javascript">
-    apiready = function() {
-        var connurl = 'http://upliusun.vicp.io:12878';
-        api.ajax({
-            url: connurl + '/api/textapp.aspx',
-            method: 'post',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        }, function(ret, err) {
-            if (ret) {
-              var data = ret.result.data;
-            } else {
-                api.alert({
-                    msg: JSON.stringify(err)
-                });
-            }
-        });
-    };
+	apiready = function() {
+		window.header = $api.byId('aui-header');
+		$api.fixStatusBar(header);
+
+		//安卓应用
+		var isAndroid = (/android/gi).test(navigator.appVersion);
+		if (isAndroid) {
+			//绑定安卓的后退按钮事件 两秒内后退按钮点击两次 关闭应用
+			var backSecond = 0;
+			api.addEventListener({
+				name: 'keyback'
+			}, function(ret, err) {
+				var curSecond = new Date().getSeconds();
+				if (Math.abs(curSecond - backSecond) > 2) {
+					backSecond = curSecond;
+					api.toast({
+						msg: '连续按两次关闭系统',
+						duration: 2000,
+						location: 'bottom'
+					});
+				} else {
+					api.closeWidget({
+						id: api.appid, //这里改成自己的应用ID
+						retData: {
+							name: 'closeWidget'
+						},
+						silent: true
+					});
+				}
+			});
+		}
+	}
+
+	function doLogin() {
+		var username = $api.val($api.byId('user'));
+		var pwd = $api.val($api.byId('pwd'));
+
+		if (username.length > 0 && pwd.length > 0) {
+			HttpRequest(connurl + '/api/Login.aspx?name=' + username + '&pwd=' + pwd, null, function(ret, err) {
+				if (ret) {
+					var status = ret.status;
+					if (status == 99) {
+						//登录用户信息
+						// api.setPrefs({
+						// 	key: 'user',
+						// 	value: ret.result
+						// });
+						$api.setStorage('user', ret.result);
+
+
+
+
+						//获取操作列表
+						HttpRequest(connurl + '/api/Login.aspx?bumenid=' + ret.result.Bumenid + "&zhiwuid=" + ret.result.Zhiwuid, null, function(ret, err) {
+							if (ret) {
+								//console.log(JSON.stringify(ret));
+								//登录用户操作信息
+								// api.setPrefs({
+								// 	key: 'caozuo',
+								// 	value: ret.result
+								// });
+
+								$api.setStorage('caozuo', ret.result);
+								//  绑定用户
+								api.closeWin({
+								    name: 'indexmain'
+								});
+
+								api.openWin({
+									name: 'indexmain',
+									url: 'indexmain.html',
+									reload:true,
+									slidBackEnabled: false
+								});
+							}
+						});
+					} else {
+						api.alert({
+							msg: ret.msg
+						});
+					}
+				} else {
+					api.alert({
+						msg: '连接服务器失败'
+					});
+				}
+			});
+		} else {
+			api.alert({
+				msg: JSON.stringify('请输入用户名和密码')
+			});
+		}
+	}
+
+	function doHints() {
+		// var hints = document.getElementById("hints");
+		// if (hints.style.display == "none") {
+		// 	hints.style.display = "block";
+		// } else {
+		// 	hints.style.display = "none";
+		// }
+		var shoujihao = $api.val($api.byId('user'));
+		var param = {
+			"shoujihao": shoujihao,
+
+		};
+		OpenWin('forgetPassword', "geren/ForgetPassword_win.html", null, param, false);
+	}
 </script>
 
 </html>
